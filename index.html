@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Koreksi Daya Dukung Perairan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-green-50 min-h-screen p-4">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex items-center gap-3 mb-6">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">
+                        Kalkulator Koreksi Tugas Daya Dukung Perairan
+                    </h1>
+                    <p class="text-gray-600">Produktivitas Perairan - Andy Rasyadi, S.Pi., M.Si.</p>
+                </div>
+            </div>
+
+            <div class="flex gap-4 mb-6 no-print">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        NIM Mahasiswa (masukkan NIM lengkap)
+                    </label>
+                    <input
+                        type="text"
+                        id="nimInput"
+                        placeholder="Contoh: 202012345678"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+                <button
+                    onclick="calculateAll()"
+                    class="self-end px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Hitung
+                </button>
+            </div>
+
+            <div class="no-print mb-4 flex gap-2">
+                <button
+                    onclick="downloadExcel()"
+                    class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                    📊 Download Panduan Excel
+                </button>
+                <button
+                    onclick="window.print()"
+                    class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                    🖨️ Print
+                </button>
+            </div>
+
+            <div id="results" class="hidden space-y-6"></div>
+        </div>
+    </div>
+
+    <script>
+        function calculateAll() {
+            const nim = document.getElementById('nimInput').value;
+            if (!nim) {
+                alert('Masukkan NIM terlebih dahulu!');
+                return;
+            }
+            
+            const XX = parseInt(nim.slice(-2)) || 0;
+            
+            // SOAL 1
+            const luasTotal = 1500 + (XX * 10);
+            const konservasiMangrove = 0.25 * luasTotal;
+            const alurPelayaran = 150;
+            const terumbuKarang = 80;
+            const areaEfektif = luasTotal - (konservasiMangrove + alurPelayaran + terumbuKarang);
+            const dayaDukungFisik = 0.15 * areaEfektif;
+            const luasPerUnit = 0.01;
+            const jumlahUnitKJA = dayaDukungFisik / luasPerUnit;
+
+            // SOAL 2
+            const A = 80 + XX;
+            const V = 3.5;
+            const Q = 450e6;
+            const Ptarget = 35;
+            const sigma = 12;
+            const bebanPemukiman = 25;
+            const bebanPertanian = 18;
+
+            const z = (V * 1e9) / (A * 1e6);
+            const tw = V / (Q / 1e9);
+            const qs = (Q / 1e6) / A;
+            const Lmax_voll = Ptarget * z * (qs + sigma) / 1000;
+            const totalBeban_voll = (Lmax_voll * A * 1e6) / 1e6;
+            const sisaKapasitas = totalBeban_voll - bebanPemukiman - bebanPertanian;
+
+            // SOAL 3
+            const rho = 1 / tw;
+            const Rret = tw / (1 + tw);
+            const Lmax_dr = Ptarget * z * rho * (1 + Math.sqrt(tw)) / 1000;
+            const totalBeban_dr = (Lmax_dr * A * 1e6) / 1e6;
+
+            // SOAL 4
+            const FCR_nila = 1.5;
+            const P_pakan_nila = 1.2;
+            const P_ikan_nila = 0.4;
+            const prod_nila = 4;
+            const limbahP_nila = ((FCR_nila * P_pakan_nila) - P_ikan_nila) * 10;
+            const dayaDukung_nila = (sisaKapasitas * 1000) / limbahP_nila;
+            const unitKJA_nila = dayaDukung_nila / prod_nila;
+
+            const FCR_mas = 1.8;
+            const P_pakan_mas = 1.0;
+            const P_ikan_mas = 0.35;
+            const prod_mas = 3.5;
+            const limbahP_mas = ((FCR_mas * P_pakan_mas) - P_ikan_mas) * 10;
+            const dayaDukung_mas = (sisaKapasitas * 1000) / limbahP_mas;
+            const unitKJA_mas = dayaDukung_mas / prod_mas;
+
+            // SOAL 5
+            const volumeKeramba = 45;
+            const biomassaIkan = 400 + (XX * 2);
+            const konsumsiO2 = 250;
+            const DO_awal = 6.5;
+            const DO_min = 4.0;
+            const Ka = 0.4;
+            const respFito = 0.3;
+
+            const totalKonsumsiO2_mg = biomassaIkan * konsumsiO2;
+            const totalKonsumsiO2_g = totalKonsumsiO2_mg / 1000;
+            const penurunanDO = totalKonsumsiO2_mg / (volumeKeramba * 1000);
+            const DO_net = Ka - penurunanDO - respFito;
+            const waktu_jam = (DO_awal - DO_min) / Math.abs(DO_net);
+            const waktu_menit = waktu_jam * 60;
+
+            displayResults(XX, {
+                soal1: { luasTotal, konservasiMangrove, areaEfektif, dayaDukungFisik, jumlahUnitKJA },
+                soal2: { A, z, tw, qs, Lmax_voll, totalBeban_voll, sisaKapasitas },
+                soal3: { rho, Rret, Lmax_dr, totalBeban_dr },
+                soal4: { limbahP_nila, dayaDukung_nila, unitKJA_nila, limbahP_mas, dayaDukung_mas, unitKJA_mas },
+                soal5: { biomassaIkan, totalKonsumsiO2_mg, totalKonsumsiO2_g, penurunanDO, DO_net, waktu_jam, waktu_menit }
+            });
+        }
+
+        function displayResults(XX, data) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.classList.remove('hidden');
+            
+            resultsDiv.innerHTML = `
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-2">Parameter:</h3>
+                    <p class="text-xl">XX (2 angka terakhir NIM) = <span class="font-bold text-blue-600">${XX}</span></p>
+                </div>
+
+                <!-- SOAL 1 -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-3 text-blue-800">SOAL 1: Daya Dukung Fisik dan Spasial</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">a) Luas Total</p>
+                            <p class="text-xl font-bold text-gray-800">${data.soal1.luasTotal.toFixed(2)} Ha</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">a) Luas Area Konservasi</p>
+                            <p class="text-xl font-bold text-gray-800">${data.soal1.konservasiMangrove.toFixed(2)} Ha</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">b) Area Efektif</p>
+                            <p class="text-xl font-bold text-gray-800">${data.soal1.areaEfektif.toFixed(2)} Ha</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">c) Daya Dukung Fisik</p>
+                            <p class="text-xl font-bold text-gray-800">${data.soal1.dayaDukungFisik.toFixed(2)} Ha</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded col-span-2">
+                            <p class="text-sm text-gray-600">d) Jumlah Unit KJA</p>
+                            <p class="text-2xl font-bold text-blue-600">${data.soal1.jumlahUnitKJA.toFixed(0)} unit</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SOAL 2 -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-3 text-green-800">SOAL 2: Model Vollenweider</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">Luas permukaan (A)</p>
+                            <p class="text-lg font-bold">${data.soal2.A.toFixed(0)} km²</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">a) Kedalaman (z)</p>
+                            <p class="text-lg font-bold">${data.soal2.z.toFixed(2)} m</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">b) Waktu tinggal (tw)</p>
+                            <p class="text-lg font-bold">${data.soal2.tw.toFixed(4)} tahun</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">c) Beban hidrolik (qs)</p>
+                            <p class="text-lg font-bold">${data.soal2.qs.toFixed(2)} m/thn</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">d) Lmax</p>
+                            <p class="text-lg font-bold">${data.soal2.Lmax_voll.toFixed(4)} g/m²/thn</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">e) Total Beban</p>
+                            <p class="text-lg font-bold">${data.soal2.totalBeban_voll.toFixed(2)} ton/thn</p>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded col-span-3 border-2 border-green-300">
+                            <p class="text-sm text-gray-600">f) Sisa Kapasitas untuk Budidaya</p>
+                            <p class="text-2xl font-bold text-green-700">${data.soal2.sisaKapasitas.toFixed(2)} ton/tahun</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SOAL 3 -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-3 text-purple-800">SOAL 3: Model Dillon-Rigler</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">a) Laju flushing (ρ)</p>
+                            <p class="text-xl font-bold">${data.soal3.rho.toFixed(4)} /tahun</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">b) Koefisien retensi (Rret)</p>
+                            <p class="text-xl font-bold">${data.soal3.Rret.toFixed(4)}</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">c) Lmax</p>
+                            <p class="text-xl font-bold">${data.soal3.Lmax_dr.toFixed(4)} g/m²/thn</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">d) Total Beban</p>
+                            <p class="text-xl font-bold">${data.soal3.totalBeban_dr.toFixed(2)} ton/thn</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SOAL 4 -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-3 text-orange-800">SOAL 4: Daya Dukung Produksi</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold mb-2 text-orange-600 text-center">🐟 Ikan Nila</h4>
+                            <div class="space-y-2">
+                                <div class="bg-orange-50 p-2 rounded">
+                                    <p class="text-xs text-gray-600">a) Limbah P per ton</p>
+                                    <p class="font-bold">${data.soal4.limbahP_nila.toFixed(2)} kg P/ton</p>
+                                </div>
+                                <div class="bg-orange-50 p-2 rounded">
+                                    <p class="text-xs text-gray-600">c) Daya Dukung</p>
+                                    <p class="font-bold">${data.soal4.dayaDukung_nila.toFixed(2)} ton</p>
+                                </div>
+                                <div class="bg-orange-100 p-2 rounded border-2 border-orange-300">
+                                    <p class="text-xs text-gray-600">e) Jumlah Unit KJA</p>
+                                    <p class="text-xl font-bold text-orange-700">${data.soal4.unitKJA_nila.toFixed(0)} unit</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2 text-orange-600 text-center">🐟 Ikan Mas</h4>
+                            <div class="space-y-2">
+                                <div class="bg-orange-50 p-2 rounded">
+                                    <p class="text-xs text-gray-600">b) Limbah P per ton</p>
+                                    <p class="font-bold">${data.soal4.limbahP_mas.toFixed(2)} kg P/ton</p>
+                                </div>
+                                <div class="bg-orange-50 p-2 rounded">
+                                    <p class="text-xs text-gray-600">d) Daya Dukung</p>
+                                    <p class="font-bold">${data.soal4.dayaDukung_mas.toFixed(2)} ton</p>
+                                </div>
+                                <div class="bg-orange-100 p-2 rounded border-2 border-orange-300">
+                                    <p class="text-xs text-gray-600">f) Jumlah Unit KJA</p>
+                                    <p class="text-xl font-bold text-orange-700">${data.soal4.unitKJA_mas.toFixed(0)} unit</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SOAL 5 -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-bold text-lg mb-3 text-red-800">SOAL 5: Daya Dukung Oksigen</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">Biomassa Ikan</p>
+                            <p class="text-xl font-bold">${data.soal5.biomassaIkan.toFixed(0)} kg</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">a) Konsumsi O₂</p>
+                            <p class="text-lg font-bold">${data.soal5.totalKonsumsiO2_mg.toFixed(0)} mg/jam</p>
+                            <p class="text-sm text-gray-600">= ${data.soal5.totalKonsumsiO2_g.toFixed(2)} g/jam</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">b) Penurunan DO</p>
+                            <p class="text-xl font-bold">${data.soal5.penurunanDO.toFixed(4)} mg/L/jam</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">c) Neraca O₂ bersih</p>
+                            <p class="text-xl font-bold">${data.soal5.DO_net.toFixed(4)} mg/L/jam</p>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded col-span-2 border-2 border-red-200">
+                            <p class="text-sm text-gray-600 mb-1">d) Waktu Kritis (DO mencapai 4.0 mg/L)</p>
+                            <p class="text-3xl font-bold text-red-600">
+                                ${data.soal5.waktu_jam.toFixed(2)} jam = ${data.soal5.waktu_menit.toFixed(0)} menit
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Catatan -->
+                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg no-print">
+                    <h4 class="font-bold text-yellow-800 mb-2">📌 Catatan untuk Koreksi:</h4>
+                    <ul class="text-sm text-yellow-900 space-y-1">
+                        <li>• Toleransi error: ±2% dari nilai kunci jawaban</li>
+                        <li>• Periksa konsistensi satuan di setiap langkah mahasiswa</li>
+                        <li>• Nilai kelengkapan: Diketahui (5%), Ditanya (5%), Penyelesaian (20%)</li>
+                        <li>• Kotak pada jawaban akhir: tambahan 5% dari nilai kerapihan</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function downloadExcel() {
+            const guide = `PANDUAN LENGKAP FORMULA EXCEL UNTUK KOREKSI TUGAS
+================================================================
+
+SHEET 1: DATABASE MAHASISWA
+----------------------------
+| A1: Nama | B1: NIM | C1: XX |
+Formula di C2: =RIGHT(B2,2)*1
+
+SHEET 2: SOAL 1 - DAYA DUKUNG FISIK
+------------------------------------
+A: Nama
+B: XX
+C: Luas Total (Ha) = 1500+(B2*10)
+D: Konservasi (Ha) = C2*0.25
+E: Alur Pelayaran = 150
+F: Terumbu Karang = 80
+G: Area Efektif (Ha) = C2-(D2+E2+F2)
+H: Daya Dukung Fisik (Ha) = G2*0.15
+I: Jumlah Unit KJA = H2/0.01
+
+SHEET 3: SOAL 2 - MODEL VOLLENWEIDER
+-------------------------------------
+A: Nama
+B: XX
+C: A (km²) = 80+B2
+D: V (km³) = 3.5
+E: Q (m³/thn) = 450000000
+F: z (m) = (D2*1000000000)/(C2*1000000)
+G: tw (tahun) = D2/(E2/1000000000)
+H: qs (m/thn) = (E2/1000000)/C2
+I: Lmax (g/m²/thn) = 35*F2*(H2+12)/1000
+J: Total Beban (ton/thn) = (I2*C2*1000000)/1000000
+K: Sisa Kapasitas (ton/thn) = J2-25-18
+
+SHEET 4: SOAL 3 - MODEL DILLON-RIGLER
+--------------------------------------
+A: Nama
+B: tw (ambil dari Sheet3 kolom G)
+C: ρ (per tahun) = 1/B2
+D: Rret = B2/(1+B2)
+E: A (km²) (ambil dari Sheet3 kolom C)
+F: z (m) (ambil dari Sheet3 kolom F)
+G: Lmax (g/m²/thn) = 35*F2*C2*(1+SQRT(B2))/1000
+H: Total Beban (ton/thn) = (G2*E2*1000000)/1000000
+
+SHEET 5: SOAL 4 - DAYA DUKUNG PRODUKSI
+---------------------------------------
+A: Nama
+B: Sisa Kapasitas (dari Sheet3 kolom K)
+
+NILA:
+C: FCR = 1.5
+D: P pakan (%) = 1.2
+E: P ikan (%) = 0.4
+F: Limbah P (kg P/ton) = (C2*D2)-E2
+G: Daya Dukung (ton) = (B2*1000)/F2
+H: Produksi per unit = 4
+I: Unit KJA = G2/H2
+
+MAS:
+J: FCR = 1.8
+K: P pakan (%) = 1.0
+L: P ikan (%) = 0.35
+M: Limbah P (kg P/ton) = (J2*K2)-L2
+N: Daya Dukung (ton) = (B2*1000)/M2
+O: Produksi per unit = 3.5
+P: Unit KJA = N2/O2
+
+SHEET 6: SOAL 5 - DAYA DUKUNG OKSIGEN
+--------------------------------------
+A: Nama
+B: XX
+C: Biomassa (kg) = 400+(B2*2)
+D: Konsumsi O2 (mg/jam) = C2*250
+E: Konsumsi O2 (g/jam) = D2/1000
+F: Volume (L) = 45*1000
+G: Penurunan DO (mg/L/jam) = D2/F2
+H: Ka (mg/L/jam) = 0.4
+I: Resp Fito (mg/L/jam) = 0.3
+J: DO net (mg/L/jam) = H2-G2-I2
+K: DO awal = 6.5
+L: DO min = 4.0
+M: Waktu (jam) = (K2-L2)/ABS(J2)
+N: Waktu (menit) = M2*60
+
+SHEET 7: VALIDASI & SCORING
+----------------------------
+Untuk setiap soal, tambahkan kolom:
+- Jawaban Mahasiswa (input manual)
+- Selisih (%) = ABS((JawabanMhs-Kunci)/Kunci)*100
+- Status = IF(Selisih<=2,"✓ BENAR","✗ SALAH")
+- Skor = IF(Selisih<=2,NilaiSoal,0)
+
+CONDITIONAL FORMATTING:
+- Hijau: Selisih < 2%
+- Kuning: Selisih 2-5%
+- Merah: Selisih > 5%
+
+TOTAL SKOR:
+= (Ketepatan*0.6) + (Kelengkapan*0.3) + (Kerapihan*0.1)
+
+================================================================
+Download file ini dan ikuti panduan untuk membuat Excel koreksi
+================================================================`;
+
+            const blob = new Blob([guide], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Panduan_Formula_Excel_Koreksi.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
